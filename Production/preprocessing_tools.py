@@ -38,6 +38,16 @@ def handle_outliers(df, factor=1.5):
 
     return df.loc[combined_condition]  
 
+def replace_rare_categories(df: pd.DataFrame, columns: list, threshold_ratio: float = 0.0001) -> pd.DataFrame:
+    length = len(df)
+
+    for categ in columns:
+        category_counts = df[categ].value_counts()
+        threshold = threshold_ratio * length 
+        df[categ] = df[categ].apply(lambda value: value if category_counts[value] > threshold else 'other')
+    
+    return df
+
 def normalize_numerical(df):
     scaler = MinMaxScaler()
     df = scaler.fit_transform(df)
