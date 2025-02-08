@@ -3,11 +3,11 @@ import pandas as pd
 import logging
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from preprocessing_tools import remove_missing_values, handle_outliers, normalize_numerical, encode_categorical, feature_selection
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from preprocessing_tools import remove_missing_values, handle_outliers, drop_unnecessary_columns, process_datetime_features, balance_categorical_features, encode_categorical_features, replace_rare_categories
 
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class PreprocessorPipeline:
     def __init__(self, num_features, cat_features):
@@ -22,12 +22,16 @@ class PreprocessorPipeline:
         num_pipeline = Pipeline([
             ("remove_missing_values", remove_missing_values()),
             ("handle_outliers", handle_outliers()),
-            ("normalize_numerical", normalize_numerical())
+            ('scaling', MinMaxScaler())
         ])
 
         cat_pipeline = Pipeline([
-            ("remove_missing_values", remove_missing_values()),
-            ("encode_categorical", encode_categorical())])
+            ('drop_unnecessary', drop_unnecessary_columns),
+            ('process_datetime', process_datetime_features),
+            ('replace_rare', replace_rare_categories),
+            ('balance_categories', balance_categorical_features),
+            ('encode', encode_categorical_features)
+        ])
     
 
         preprocessor = ColumnTransformer([
@@ -37,23 +41,25 @@ class PreprocessorPipeline:
 
         full_pipeline = Pipeline([
             ("preprocessor", preprocessor),
-            ("feature_selection", feature_selection())
         ])
+
+        logging.info('Preprocessing pipeline built.')
+        
+        return full_pipeline
 
     def transformation(self, df):
         logging.info('Transforming data...')
-        prepocessed_data =  self.pipeline.fit_transform(df)
+        prepocessed_data = self.pipeline.fit_transform(df)
         logging.info('Data transformation completed.')
 
-        return prepocessed_data
+        return pd.DataFrame(prepocessed_data)
     
 
 if __name__ == '__main__':
     logging.info('Loading data...')
     df = pd.read_csv('data/dataset-mini.csv')
-    num_features = [...]
-    cat_features = [...]
-
+    num_features = df.select_dtypes(include=['int64', 'uint64', 'float64']).columns.tolist()
+    cat_features = df.select_dtypes(include=['object']).columns.tolist()
 
     preprocessor = PreprocessorPipeline(num_features=num_features, cat_features=cat_features)
     preprocessed_data = preprocessor.transformation(df)
