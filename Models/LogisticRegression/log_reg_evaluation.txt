@@ -1,0 +1,15 @@
+              precision    recall  f1-score   support
+
+           0       0.96      0.69      0.80    165985
+           1       0.05      0.38      0.09      6962
+
+    accuracy                           0.68    172947
+   macro avg       0.51      0.53      0.44    172947
+weighted avg       0.93      0.68      0.77    172947
+
+
+[[114471  51514]
+ [  4334   2628]]
+
+ dataset: about 1 million of rows after preprocessing
+ Maybe it can reach 0.53 macro f1 using all dataset, but I'm not sure

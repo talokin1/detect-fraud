@@ -3,7 +3,6 @@ import pandas as pd
 import logging
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 from preprocessing_tools import RemoveMissingValues, HandleOutliers, ReplaceRareCategories, ProcessDatetimeFeatures, EncodeCategoricalFeatures, NormalizeNumerical
 
 
@@ -47,16 +46,21 @@ class PreprocessorPipeline:
 
 if __name__ == '__main__':
     logging.info('Loading data...')
-    df = pd.read_csv('C:\Edu\detect-fraud(draft)\data\general_datasets\dataset-mini.csv')
+    df = pd.read_csv('train.csv')
+
+    df.pop("Unnamed: 0")
+    is_fraud = df.pop("is_fraud")
+
     num_features = df.select_dtypes(include=['int64', 'uint64', 'float64']).columns.tolist()
     cat_features = df.select_dtypes(include=['object']).columns.tolist()
 
     preprocessor = PreprocessorPipeline(num_features=num_features, cat_features=cat_features)
     preprocessed_data = preprocessor.transformation(df)
+    preprocessed_data["30"] = is_fraud
     logging.info('Preprocessing completed.')
 
     logging.info('Saving preprocessed data...')
-    pd.DataFrame(preprocessed_data).to_csv('data/preprocessed_data-mini.csv', index=False)
+    pd.DataFrame(preprocessed_data).to_csv('data/preprocessed_data-train.csv', index=False)
 
 
     
