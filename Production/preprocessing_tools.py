@@ -2,6 +2,9 @@ import pandas as pd
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 class RemoveMissingValues(BaseEstimator, TransformerMixin):
@@ -12,8 +15,8 @@ class RemoveMissingValues(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
-        X = X.copy()
-        X = X.dropna(axis=1, thresh=0.22*len(X))
+        logging.info('Removing missing values...')
+        X = X.dropna(axis=1, thresh=self.missing_threshold * len(X))
         drop_cols = ["user_agent", "traffic_source", "card_holder_first_name", "card_holder_last_name"]
         X.drop(columns=[col for col in drop_cols if col in X.columns], errors="ignore", inplace=True)
 
@@ -27,23 +30,22 @@ class RemoveMissingValues(BaseEstimator, TransformerMixin):
 
 
 class HandleOutliers(BaseEstimator, TransformerMixin):
-    def __init__(self, factor):
+    def __init__(self, factor=1.5):
         self.factor = factor
-        factor = 1.5
 
     def fit(self, X, y=None):
         return self
 
     def transform(self, X):
-        X = X.copy()
+        logging.info('Handling outliers...')
         num_cols = X.select_dtypes(include=["number"]).columns
 
         for col in num_cols:
             Q1 = X[col].quantile(0.25)
             Q3 = X[col].quantile(0.75)
             IQR = Q3 - Q1
-            lower_bound = Q1 - 1.5 * IQR
-            upper_bound = Q3 + 1.5 * IQR
+            lower_bound = Q1 - self.factor * IQR
+            upper_bound = Q3 + self.factor * IQR
             X[col] = np.clip(X[col], lower_bound, upper_bound)
 
         return X
@@ -57,7 +59,7 @@ class ReplaceRareCategories(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
-        X = X.copy()
+        logging.info('Replacing rare categories...')
         unbalanced_categories = ['merchant_country', 'merchant_language', 'ip_country', 'platform', 'cardbrand', 'cardcountry']
         length = len(X)
 
@@ -75,7 +77,7 @@ class ProcessDatetimeFeatures(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
-        X = X.copy()
+        logging.info('Processing datetime features...')
         if 'created_at' in X.columns:
             X['created_at'] = pd.to_datetime(X['created_at'], errors='coerce')
             X['month_creating'] = X['created_at'].dt.month
@@ -93,17 +95,21 @@ class EncodeCategoricalFeatures(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
-        X = X.copy()
+        logging.info('Encoding categorical features...')
         for col, encoder in self.encoders.items():
             X[col] = encoder.transform(X[col].astype(str))
         return X
 
 
+
 class NormalizeNumerical(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         self.scaler = MinMaxScaler()
-        self.scaler.fit(X)
+        self.num_features = X.select_dtypes(include=["number"]).columns.tolist()
+        self.scaler.fit(X[self.num_features])
         return self
 
     def transform(self, X):
-        return pd.DataFrame(self.scaler.transform(X), columns=X.columns)
+        logging.info('Normalizing numerical features...')
+        X[self.num_features] = self.scaler.transform(X[self.num_features])
+        return X
