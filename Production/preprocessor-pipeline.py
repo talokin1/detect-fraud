@@ -47,7 +47,7 @@ class PreprocessorPipeline:
 
 if __name__ == '__main__':
     logging.info('Loading data...')
-    df = pd.read_csv('dataset-mini.csv')
+    df = pd.read_csv('C:\Edu\detect-fraud(draft)\data\general_datasets\dataset-mini.csv')
     num_features = df.select_dtypes(include=['int64', 'uint64', 'float64']).columns.tolist()
     cat_features = df.select_dtypes(include=['object']).columns.tolist()
 
