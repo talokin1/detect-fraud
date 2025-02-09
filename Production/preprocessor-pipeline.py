@@ -83,4 +83,4 @@ if __name__ == '__main__':
     logging.info('Preprocessing completed.')
 
     logging.info('Saving preprocessed data...')
-    preprocessed_data.to_csv(r'...\data\preprocessed_data-mini_v4.csv', index=False)
+    preprocessed_data.to_csv(r'..\data\prepocessed_data-mini_v3.csv', index=False)
