@@ -1,7 +1,9 @@
 import pandas as pd
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
+from category_encoders.target_encoder import TargetEncoder
+
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -87,19 +89,42 @@ class ProcessDatetimeFeatures(BaseEstimator, TransformerMixin):
 
 
 class EncodeCategoricalFeatures(BaseEstimator, TransformerMixin):
+    def __init__(self, one_hot_threshold=10):
+        self.one_hot_threshold = one_hot_threshold
+        self.one_hot_encoders = {}
+        self.target_encoders = {}
+
     def fit(self, X, y=None):
-        self.encoders = {}
-        for col in X.select_dtypes(include=["object"]).columns:
-            self.encoders[col] = LabelEncoder()
-            self.encoders[col].fit(X[col].astype(str))
+        cat_features = X.select_dtypes(include=["object"]).columns
+        
+        for col in cat_features:
+            unique_count = X[col].nunique()
+            
+            if unique_count <= self.one_hot_threshold:
+                self.one_hot_encoders[col] = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
+                self.one_hot_encoders[col].fit(X[[col]])
+            else:
+                if y is not None:
+                    self.target_encoders[col] = TargetEncoder()
+                    self.target_encoders[col].fit(X[col], y)
+        
         return self
 
     def transform(self, X):
         logging.info('Encoding categorical features...')
-        for col, encoder in self.encoders.items():
-            X[col] = encoder.transform(X[col].astype(str))
-        return X
+        X_transformed = X.copy()
+        
+        for col, encoder in self.one_hot_encoders.items():
+            encoded = encoder.transform(X_transformed[[col]])
+            encoded_df = pd.DataFrame(encoded, columns=[f"{col}_{cat}" for cat in encoder.categories_[0]])
+            X_transformed = X_transformed.drop(columns=[col]).reset_index(drop=True)
+            encoded_df = encoded_df.reset_index(drop=True)
+            X_transformed = pd.concat([X_transformed, encoded_df], axis=1)
 
+        for col, encoder in self.target_encoders.items():
+            X_transformed[col] = encoder.transform(X_transformed[col])
+        
+        return X_transformed
 
 
 class NormalizeNumerical(BaseEstimator, TransformerMixin):
