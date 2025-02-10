@@ -12,10 +12,11 @@ from preprocessing_tools import (
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class PreprocessorPipeline:
-    def __init__(self, num_features, cat_features, undersample=True):
+    def __init__(self, num_features, cat_features, undersample=True, chunk_size=1_000_000):
         self.num_features = num_features
         self.cat_features = cat_features
         self.undersample = undersample
+        self.chunk_size = chunk_size
         self.pipeline = self._build_pipeline()
 
     def _build_pipeline(self):
@@ -42,9 +43,24 @@ class PreprocessorPipeline:
         return Pipeline([("preprocessor", preprocessor)])
 
     def transformation(self, df, target):
-        logging.info('Transforming data...')
-        transformed_data = pd.DataFrame(self.pipeline.fit_transform(df))
-        transformed_data[target.name] = target.values
+        logging.info('Transforming data in chunks...')
+        num_chunks = len(df) // self.chunk_size + (1 if len(df) % self.chunk_size else 0)
+        processed_chunks = []
+
+        for i in range(num_chunks):
+            logging.info(f'Processing chunk {i+1}/{num_chunks}...')
+            chunk = df.iloc[i * self.chunk_size: (i + 1) * self.chunk_size]
+            target_chunk = target.iloc[i * self.chunk_size: (i + 1) * self.chunk_size]
+
+            if i == 0:
+                processed_chunk = pd.DataFrame(self.pipeline.fit_transform(chunk))
+            else:
+                processed_chunk = pd.DataFrame(self.pipeline.transform(chunk))
+
+            processed_chunk[target.name] = target_chunk.values
+            processed_chunks.append(processed_chunk)
+
+        transformed_data = pd.concat(processed_chunks, axis=0)
 
         if self.undersample:
             logging.info('Applying undersampling...')
@@ -52,12 +68,12 @@ class PreprocessorPipeline:
             transformed_data, target = rus.fit_resample(transformed_data.drop(columns=[target.name]), transformed_data[target.name])
             transformed_data[target.name] = target
             logging.info('Undersampling completed.')
-        
+
         return transformed_data.reset_index(drop=True)
 
 if __name__ == '__main__':
     logging.info('Loading data...')
-    df = pd.read_csv(r'..\data\general_datasets\dataset-mini.csv')
+    df = pd.read_csv(r"C:\Edu\detect-fraud(draft)\data\general_datasets\dataset-mini.csv")
 
     df.pop("Unnamed: 0")
     is_fraud = df.pop("is_fraud")
@@ -69,6 +85,5 @@ if __name__ == '__main__':
     preprocessed_data = preprocessor.transformation(df, is_fraud)
     
     logging.info('Preprocessing completed.')
-
     logging.info('Saving preprocessed data...')
-    preprocessed_data.to_csv(r'..\data\prepocessed_data-mini_v2.csv', index=False)
+    preprocessed_data.to_csv(r'C:\Edu\detect-fraud\data\preprocessed_data-mini_v4.csv', index=False)

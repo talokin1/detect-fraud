@@ -1,0 +1,35 @@
+Evaluation on "real" data:
+
+1. UnderSampling
+Classification Report:
+               precision    recall  f1-score   support
+
+           0       0.98      0.75      0.85     96063
+           1       0.10      0.66      0.17      3937
+
+    accuracy                           0.75    100000
+   macro avg       0.54      0.71      0.51    100000
+weighted avg       0.95      0.75      0.82    100000
+
+Confusion Matrix:
+ [[71954 24109]
+ [ 1327  2610]]
+AUC-ROC Score: 0.7885427738106134
+
+2. ADASYN (similar to SMOTE)
+Classification Report:
+               precision    recall  f1-score   support
+
+           0       0.97      0.93      0.95     96063
+           1       0.11      0.22      0.15      3937
+
+    accuracy                           0.90    100000
+   macro avg       0.54      0.57      0.55    100000
+weighted avg       0.93      0.90      0.92    100000
+
+Confusion Matrix:
+ [[89269  6794]
+ [ 3075   862]]
+AUC-ROC Score: 0.7216679075311869
+
+3. SMOTE, SMOTEENN, SMOTEToken: similar results (SMOTEToken a bit better)
