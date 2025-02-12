@@ -82,14 +82,18 @@ lightgbm_model = lgb.LGBMClassifier(
     early_stopping_rounds=100
 )
 
+catboost_model.fit(X_train, y_train, eval_set=[(X_test, y_test)], early_stopping_rounds=100, verbose=False)
+xgboost_model.fit(X_train, y_train, eval_set=[(X_test, y_test)], early_stopping_rounds=100, verbose=False)
+lightgbm_model.fit(X_train, y_train, eval_set=[(X_test, y_test)], early_stopping_rounds=100, verbose=False)
+
 stacking_model = StackingClassifier(
     estimators=[
         ('catboost', catboost_model),
         ('xgboost', xgboost_model),
         ('lightgbm', lightgbm_model)
     ],
-    final_estimator=ctb.CatBoostClassifier(iterations=500, learning_rate=0.03, depth=4, verbose=0),
-    cv=5 
+    final_estimator=ctb.CatBoostClassifier(iterations=500, learning_rate=0.03, depth=4, verbose=0, early_stopping_rounds=None),
+    cv=5
 )
 
 stacking_model.fit(X_train, y_train)
